@@ -1,0 +1,251 @@
+
+import subprocess
+import random
+
+all_legal_10 = {'a1', 'b1', 'c1', 'd1', 'e1', 'f1', 'g1', 'h1', 'i1', 'j1', 'a2', 'b2', 'c2', 'd2', 'e2', 
+               'f2', 'g2', 'h2', 'i2', 'j2', 'a3', 'b3', 'c3', 'd3', 'e3', 'f3', 'g3', 'h3', 'i3', 'j3', 
+               'a4', 'b4', 'c4', 'd4', 'e4', 'f4', 'g4', 'h4', 'i4', 'j4', 'a5', 'b5', 'c5', 'd5', 'e5', 
+               'f5', 'g5', 'h5', 'i5', 'j5', 'a6', 'b6', 'c6', 'd6', 'e6', 'f6', 'g6', 'h6', 'i6', 'j6', 
+               'a7', 'b7', 'c7', 'd7', 'e7', 'f7', 'g7', 'h7', 'i7', 'j7', 'a8', 'b8', 'c8', 'd8', 'e8', 
+               'f8', 'g8', 'h8', 'i8', 'j8', 'a9', 'b9', 'c9', 'd9', 'e9', 'f9', 'g9', 'h9', 'i9', 'j9', 
+               'a10', 'b10', 'c10', 'd10', 'e10', 'f10', 'g10', 'h10', 'i10', 'j10'}
+
+counter10 = 1
+counter9 = 1
+class StrgNode(object):
+    def __init__(self,p9,p10,movehist,parent = None,prvsWhiteMove = None,prvsBlackMove = None,) -> None:
+        self.p9 = p9
+        self.p10 = p10
+        self.subgames = []
+        self.black_counter_sub = []
+        self.eCounters =[]
+        self.nCounters =[]
+        #courrently, not in subgames and not 10 are all put in emptyStone
+        self.emptyStone = []
+        self.notIn = []
+        self.parent = parent
+        self.movehist = movehist.copy()
+        self.prvsWhiteMove = prvsWhiteMove
+        self.prvsBlackMove = prvsBlackMove
+        #two move(W,B) are added to the move history as to repersent the state
+        #if there is a way to connect two program without shutting one down, this wont be necessary
+        if prvsWhiteMove != None:
+            self.lastmoves = [prvsWhiteMove,prvsBlackMove]
+            self.movehist.append(prvsWhiteMove)
+            self.movehist.append(prvsBlackMove)
+        else:
+            self.lastmoves = [prvsWhiteMove,prvsBlackMove]
+        #may have to solve without 9 strategy is not following
+        #which meaning after this point, the tree no longer countius
+        self.following = True
+        self.end = False
+        self.undotimes = 2
+        self.init_subs(self.p9)
+        
+    def init_subs(self,p9):
+        global counter9,counter10
+        '''# we dont remove black stone from not in 9x9 set
+        # since we never select black form this  set
+        # therefor, we only need to remove the move of white from one of this  set
+        # the black replay of playing in this list will be treat same,(may need treat different)
+        += 1
+        if self.parent != None:
+            self.emptyStone = self.parent.emptyStone
+            self.emptyStone.discard(self.prvsWhiteMove)
+            self.notIn = self.parent.notIn
+            self.notIn.discard(self.prvsWhiteMove)'''
+        #this play move his so far in 99 program
+        
+        for move in self.lastmoves:
+            if move == None:
+                break
+            if 'j' in move or '0' in move:
+                self.p10.stdin.write(("play "+move+'\n'))
+                counter10 += 1
+                self.undotimes -= 1
+                continue
+            self.p10.stdin.write(("play "+move+'\n'))
+            counter10 += 1
+            self.p9.stdin.write(("play "+move+'\n'))
+            counter9 += 1
+        self.p9.stdin.write(("final_score"+'\n'))
+        final = read_last_output(self.p9,counter9)
+        print("final",final)
+        if "cannot" not in final:
+            self.end = True
+        self.p9.stdin.write(("show_jypattern_list"+'\n'))
+        #try if can not p.commu to get the output bu stdout or stderr(check)
+        sr2 = read_last_output(self.p9,counter9)
+        counter9 = 0
+        print("sublist",sr2)
+        #get output of subgame in slef list  
+        split = sr2.replace(" ","@").split("@")[2:]
+        print("split",split)
+        seta = []
+        if len(split) ==0:
+            return
+        sub_id = -1
+
+        for i in range(2,len(split),3):
+            if split[i] == sub_id:
+                self.subgames[-1].append(split[i-2])
+            else:
+                sub_id = split[i]
+                self.subgames.append([split[i-2]])
+            seta.append(split[i-2])
+        #the moves not in subgame and movehis are empty or not in stone
+        print("his",self.movehist)
+        ocpcell = []
+        for move in self.movehist:
+            ocpcell.append(move[-2:])
+        print("ocp",ocpcell)
+        self.emptyStone = list(set(seta)^set(all_legal_10)^set(ocpcell))    
+        print("emp",self.emptyStone)
+        print("sub",self.subgames)
+        # write output to text file or in prog text
+        # transfor to movelist
+        
+    
+    
+    
+    def find_counter_bm(self):
+        global counter9,counter10
+        #p = subprocess.Popen("")
+
+        #this play move his so far in 99 program
+        '''for move in self.movehist:
+            self.p9.stdin.write(("play "+move+"\n"))
+            counter9 += 1'''
+        for subgame in self.subgames:
+            counters = []
+            for move in subgame:
+                #need to find not let replay automatic
+                print("move",move)
+                self.p9.stdin.write(("play w "+move+"\n"))
+                counter9 += 1
+                self.p9.stdin.write(("genmove b"+"\n"))
+                counter = read_last_output(self.p9,counter9)[-2:]
+                print("counter",counter)
+                counter9 = 0
+                #we got counter and now we filter it if there is a mustplay
+                
+                #self.deal_mustplay(move,p10,counter)
+                
+                
+                counters.append(counter)
+                self.p9.stdin.write(("undo"+"\n"))
+                counter9 += 1
+                self.p9.stdin.write(("undo"+"\n"))
+                counter9 += 1
+            self.black_counter_sub.append(counters)
+        eCounters = []
+        for move in self.emptyStone:
+            #need to find not let replay automatic
+            if 'j' in move or '0' in move:
+                pass
+            else:
+                self.p9.stdin.write(("play w "+move+"\n"))
+                counter9 += 1
+            self.p9.stdin.write(("genmove b"+"\n"))
+            counter = read_last_output(self.p9,counter9)
+            print("counter",counter)
+            counter9 = 0
+            #we got counter and now we filter it if there is a mustplay
+            
+            #self.deal_mustplay(move,p10,counter)
+            
+            
+            self.eCounters.append(counter)
+            self.p9.stdin.write(("undo"+"\n"))
+            counter9 += 1
+            if 'j' not in move and '0' not in move:
+                self.p9.stdin.write(("undo"+"\n"))
+                counter9 += 1
+            #break for now, only use one counter moves for the empty
+            break
+        '''nCounters = []
+        for move in self.notIn:
+            #need to find not let replay automatic
+            p.stdin.write(move)
+            p.stdin.write("genmove b")
+            counter = p.stdout
+            self.nCounters.append(counter)
+            p.stdin("undo")
+            p.stdin("undo")
+            #break for now, only use one counter moves for the not in
+            break'''
+    def deal_mustplay(self,move,p10,counter):
+        global counter10
+        # if counter not in mustplay, then we chose from must play, 
+        #one question is that should we may not able to follow 9 strategy anymore
+        p10.stdin.write((move+"\n"))
+        counter10 += 1
+        p10.stdin.write(("vc-get-mustplay"+"\n"))
+        counter10 += 1
+        mustplay = read_last_output(p10,counter10)
+        counter10 = 0
+        p10.stdin("undo")
+        counter10 += 1
+        #deal without put
+        if counter not in mustplay:
+            self.following 
+            return random.choice(mustplay)
+        else:
+            return counter
+        
+    def undo(self):
+        global counter10,counter9
+        self.p10.stdin.write(("undo"+"\n"))
+        self.p10.stdin.write(("undo"+"\n"))
+        counter10 += 2
+        for i in range(self.undotimes):
+            self.p9.stdin.write(("undo"+"\n"))
+            self.p9.stdin.write(("undo"+"\n"))
+            counter9 += 1
+    def sort_moves(self):
+        pass
+
+class StrgTree(object):
+    def __init__(self,movehist,program,program2,c10,c9):
+        self.root = StrgNode(movehist)
+        self.p10 = program
+        self.p9 = program2
+        global counter10,counter9
+        counter10,counter9 = c10,c9
+
+    
+    def go_though_tree(self,node):
+        global counter10
+        if node.end == True:
+            self.p10.stdin.write(("dfpn-solve-state"+"\n"))
+            counter10 += 1
+            out = read_last_output(self.p10,counter10)
+            counter10 = 0
+            return out
+        for index,subgame in enumerate(node.subgames):
+            for jndex,move in enumerate(subgame):
+                WMove = "w " + move
+                BMove = "b " + node.black_counter_sub[index][jndex]
+                childnode = StrgNode(self.p9,self.p10,node.movehist,node,WMove,BMove)
+                self.go_though_tree(childnode)
+                childnode.undo()
+
+        for i in range(len(node.emptyStone)):
+            childnode = StrgNode(self.p9,self.p10,node.movehist,node,node.emptyStone[i],node.eCounter[i])
+            self.go_though_tree(childnode)
+
+
+
+def read_last_output(prog,count):
+    countunoutputp = 0
+    temp = None
+    prog.stdin.flush()
+    while True:
+        output = prog.stdout.readline()
+        if not output.strip():
+            if countunoutputp == count:
+                return temp
+            else:
+                countunoutputp += 1
+        else:
+            temp = output.strip()

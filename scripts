@@ -1,0 +1,42 @@
+import strgtree
+import subprocess
+
+c10 = 0
+c9 = 0
+def main():
+    global c10,c9
+    movehis = ["b e5"]
+    command = '/cshome/xinyue11/Desktop/benzene-vanilla-cmake/build/src/mohex/mohex'
+    p10 = subprocess.Popen([command], 
+                                shell=True,
+                                stdin=subprocess.PIPE, 
+                                stdout=subprocess.PIPE, 
+                                stderr=subprocess.PIPE,universal_newlines=True,encoding='utf8',)
+    
+    command2 = '/cshome/xinyue11/Desktop/benzene-vanilla-cmake/build/src/jingyang/jingyang'
+    p9 = subprocess.Popen([command2], 
+                                shell=True,
+                                stdin=subprocess.PIPE, 
+                                stdout=subprocess.PIPE, 
+                                stderr=subprocess.PIPE,universal_newlines=True,encoding='utf8',)
+    
+    p10.stdin.write(("boardsize 10 "+"\n"))
+    p9.stdin.write(("boardsize 9"+"\n"))
+    c10 += 1
+    c9 += 1
+    for move in movehis:
+        p9.stdin.write(("play "+move+"\n"))
+        p10.stdin.write(("play "+move+"\n"))
+        c10 += 1
+        c9 += 1
+    root = strgtree.StrgNode(p9,p10,movehis)
+    root.find_counter_bm()
+
+    (out, err) = p9.communicate()
+    #print("oyt",out)
+    p10.communicate()
+    print("subgame",root.subgames)
+    print("blackcounter",root.black_counter_sub)
+
+if __name__ == "__main__":
+    main()
